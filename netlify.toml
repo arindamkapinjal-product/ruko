@@ -1,0 +1,7 @@
+# Netlify settings for Ruko.
+[build]
+  publish = "site"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

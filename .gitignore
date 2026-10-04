@@ -1,0 +1,9 @@
+# Never upload these to GitHub
+.env
+.env.*
+.netlify/
+node_modules/
+private/
+CLAUDE.md
+.DS_Store
+Thumbs.db

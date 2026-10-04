@@ -1,0 +1,15 @@
+{
+  "name": "ruko",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ruko: spot scam calls and messages before you pay. Built for India.",
+  "scripts": {
+    "test": "node --test",
+    "eval": "node scripts/run-eval.mjs",
+    "review-feedback": "node scripts/review-feedback.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.3"
+  }
+}

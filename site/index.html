@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ruko — check before you pay</title>
+<meta name="description" content="Got a suspicious call or message? Ruko spots scam signs in seconds and stops you before you pay. Built for India. Never listens to your calls.">
+<meta name="theme-color" content="#B3261E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23B3261E' d='M20 2h24l18 18v24L44 62H20L2 44V20z'/%3E%3Cpath fill='%23fff' d='M18 28h28v8H18z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F3EE; --surface: #FFFFFF; --ink: #1D1B19; --muted: #625D57; --line: #E2DCD3;
+    --stop: #B3261E; --stop-bg: #FCE8E6; --warn: #8A5300; --warn-bg: #FFF1D6; --unsure: #4A4F8C; --unsure-bg: #E9EAF8;
+    --ok: #2E6B45; --ok-bg: #E4F2E8; --accent: #B3261E; --accent-ink: #FFFFFF; --radius: 16px;
+    --font: "Mukta", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141312; --surface: #1F1D1B; --ink: #F3EFEA; --muted: #B5ADA4; --line: #36322E;
+      --stop: #FF8A80; --stop-bg: #3A1714; --warn: #F2B65A; --warn-bg: #33260F; --unsure: #AEB3FF; --unsure-bg: #22243D;
+      --ok: #7CCB98; --ok-bg: #16281D; --accent: #FF8A80; --accent-ink: #141312;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141312; --surface: #1F1D1B; --ink: #F3EFEA; --muted: #B5ADA4; --line: #36322E;
+    --stop: #FF8A80; --stop-bg: #3A1714; --warn: #F2B65A; --warn-bg: #33260F; --unsure: #AEB3FF; --unsure-bg: #22243D;
+    --ok: #7CCB98; --ok-bg: #16281D; --accent: #FF8A80; --accent-ink: #141312;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 18px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 48px; }
+  header h1 { font-size: 2.2rem; line-height: 1; margin: 0; font-weight: 800; letter-spacing: -.02em; }
+  header h1 span { color: var(--accent); }
+  header p { margin: 6px 0 0; color: var(--muted); }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px; margin: 20px 0; }
+  .tabs button { border: 0; background: none; font: inherit; font-size: .9rem; font-weight: 600; color: var(--muted); padding: 10px 6px; border-radius: 999px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  textarea { width: 100%; min-height: 130px; font: inherit; font-size: 1.05rem; padding: 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); resize: vertical; }
+  textarea:focus-visible, button:focus-visible, input:focus-visible, label.btn:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+  button, .btn, a.btn { font: inherit; font-weight: 700; font-size: 1rem; border-radius: 999px; padding: 12px 20px; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; min-height: 48px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); flex: 1; justify-content: center; font-size: 1.1rem; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  label.btn { position: relative; }
+  label.btn input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .small { font-size: .88rem; } .muted { color: var(--muted); }
+  .note { font-size: .88rem; color: var(--muted); margin: 10px 0 0; }
+  .consent { display: flex; gap: 10px; align-items: flex-start; font-size: .92rem; margin-top: 10px; background: var(--warn-bg); padding: 10px 12px; border-radius: 10px; }
+  .consent input { width: 22px; height: 22px; flex: none; margin-top: 2px; }
+
+  .result { margin-top: 16px; border-radius: var(--radius); padding: 18px; border: 2px solid; }
+  .result.high { background: var(--stop-bg); border-color: var(--stop); }
+  .result.medium { background: var(--warn-bg); border-color: var(--warn); }
+  .result.unsure { background: var(--unsure-bg); border-color: var(--unsure); }
+  .result.low { background: var(--ok-bg); border-color: var(--ok); }
+  .result h2 { margin: 0; font-size: 1.5rem; line-height: 1.15; }
+  .result.high h2 { color: var(--stop); } .result.medium h2 { color: var(--warn); } .result.unsure h2 { color: var(--unsure); } .result.low h2 { color: var(--ok); }
+  .result .type { font-weight: 700; margin-top: 4px; }
+  .why { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 6px; }
+  .why li { background: var(--surface); border-left: 4px solid currentColor; padding: 6px 10px; border-radius: 6px; font-size: .95rem; }
+  .result p { margin: 10px 0 0; }
+  .actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .actions a.btn { justify-content: center; background: var(--surface); }
+  .actions a.btn.call { background: var(--stop); border-color: var(--stop); color: #fff; }
+  .source { font-size: .8rem; color: var(--muted); margin-top: 10px; }
+  .feedback { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .feedback .row button { font-size: .9rem; padding: 8px 14px; min-height: 40px; }
+
+  .q { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .q:last-of-type { border-bottom: 0; }
+  .yn { display: flex; gap: 6px; flex: none; }
+  .yn button { min-width: 64px; justify-content: center; padding: 8px 12px; min-height: 44px; }
+  .yn button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+  .sim { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 520px) { .sim { grid-template-columns: 1fr; } }
+  .phone { border: 8px solid var(--ink); border-radius: 28px; min-height: 300px; padding: 16px 14px; background: var(--bg); position: relative; overflow: hidden; }
+  .phone .who { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .phone .caller { font-weight: 800; font-size: 1.15rem; margin-top: 6px; }
+  .phone .dp { width: 54px; height: 54px; border-radius: 50%; background: var(--line); display: grid; place-items: center; font-size: 1.6rem; margin: 10px 0; }
+  .overlay { position: absolute; inset: 0; padding: 18px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .overlay.stop { background: var(--stop); color: #fff; }
+  .overlay.toast { inset: auto 10px 10px 10px; border-radius: 12px; background: var(--warn-bg); color: var(--ink); border: 1.5px solid var(--warn); font-size: .9rem; }
+  .overlay.stop b { font-size: 1.4rem; line-height: 1.1; }
+  .overlay.stop span { font-size: .95rem; }
+  .overlay.stop i { font-style: normal; background: #fff; color: var(--stop); border-radius: 999px; padding: 8px; text-align: center; font-weight: 700; font-size: .9rem; }
+  .bubble { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; font-size: .9rem; margin-top: 10px; }
+  .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .toggles label { display: flex; gap: 8px; align-items: center; font-size: .92rem; background: var(--bg); padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); }
+  .toggles input { width: 20px; height: 20px; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .timing { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; font-size: .88rem; }
+  .timing input { width: 64px; font: inherit; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  details summary { cursor: pointer; font-weight: 700; margin-top: 12px; }
+  footer { margin-top: 28px; font-size: .85rem; color: var(--muted); }
+  footer p { margin: 6px 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ru<span>ko</span>.</h1>
+    <p>Got a suspicious call or message? Check before you pay.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="What do you want to check?">
+    <button role="tab" id="tab-msg" aria-selected="true" aria-controls="panel-msg">Check a message</button>
+    <button role="tab" id="tab-call" aria-selected="false" aria-controls="panel-call">I'm on a call</button>
+    <button role="tab" id="tab-demo" aria-selected="false" aria-controls="panel-demo">Call protection</button>
+  </div>
+
+  <!-- 1. Check a message -->
+  <section id="panel-msg" role="tabpanel" aria-labelledby="tab-msg">
+    <div class="card">
+      <label for="msg" class="small muted">Paste the message, or tap Speak and say what the caller told you</label>
+      <textarea id="msg" placeholder="e.g. This is Mumbai Police. Your Aadhaar is linked to a crime. Do not tell anyone…"></textarea>
+      <div class="row">
+        <button type="button" id="mic" aria-label="Speak instead of typing">🎤 Speak</button>
+        <label class="btn" id="shot-label">🖼️ Screenshot<input type="file" id="shot" accept="image/*"></label>
+        <button type="button" id="lang" aria-label="Change speaking language">हिंदी</button>
+      </div>
+      <div id="shot-box" hidden>
+        <p class="note" id="shot-name"></p>
+        <label class="consent"><input type="checkbox" id="shot-consent"> <span>Screenshots are sent to our AI checker as they are. Crop out your name, number and address first. Nothing is stored.</span></label>
+      </div>
+      <div class="row"><button type="button" class="primary" id="check">Check it</button></div>
+      <p class="note" id="redacted" hidden></p>
+    </div>
+    <div id="msg-result"></div>
+  </section>
+
+  <!-- 2. I'm on a call -->
+  <section id="panel-call" role="tabpanel" aria-labelledby="tab-call" hidden>
+    <div class="card">
+      <p style="margin-top:0"><b>Answer quickly. You can stay on the call.</b></p>
+      <div class="q"><span>Are they asking for <b>money</b>, OTP or bank details?</span><div class="yn" data-q="money"><button type="button">Yes</button><button type="button">No</button></div></div>
+      <div class="q"><span>Do they say they are <b>police, CBI, customs, courier or bank</b>?</span><div class="yn" data-q="authority"><button type="button">Yes</button><button type="button">No</button></div></div>
+      <div class="q"><span>Did they say <b>stay on the call</b> or <b>don't tell anyone</b>?</span><div class="yn" data-q="secrecy"><button type="button">Yes</button><button type="button">No</button></div></div>
+      <div class="q"><span>Do they say someone you know is <b>in trouble</b>?</span><div class="yn" data-q="relative"><button type="button">Yes</button><button type="button">No</button></div></div>
+    </div>
+    <div id="quiz-result"></div>
+  </section>
+
+  <!-- 3. Call protection demo -->
+  <section id="panel-demo" role="tabpanel" aria-labelledby="tab-demo" hidden>
+    <div class="card">
+      <p style="margin-top:0"><b>How Ruko protects you during calls</b> (Android app, in development). It never listens to the call. It watches for the signs of a scam and calls in family.</p>
+      <div class="row" style="margin-top:0"><button type="button" class="primary" id="play">▶ Play a scam call</button></div>
+      <details>
+        <summary>Change the call yourself</summary>
+        <div class="toggles" style="margin-top:10px">
+          <label><input type="checkbox" id="s-unknown" checked> Caller not in contacts</label>
+          <label><input type="checkbox" id="s-video"> Video call</label>
+          <label><input type="checkbox" id="s-official"> Police-style profile picture</label>
+          <label><input type="checkbox" id="s-intl"> International number</label>
+          <label><input type="checkbox" id="s-pay"> Payment app opened</label>
+        </div>
+        <label for="s-min" class="small" style="display:block;margin-top:10px">Minutes into the call: <b id="s-min-v">0</b></label>
+        <input type="range" id="s-min" min="0" max="30" step="1" value="0">
+        <details>
+          <summary class="small">Alert timing (family can change this)</summary>
+          <div class="timing" style="margin-top:8px">
+            <span>Police-style picture: alert after</span><span><input type="number" id="t-official" min="0" max="60"> min</span>
+            <span>Video call: alert after</span><span><input type="number" id="t-video" min="0" max="60"> min</span>
+            <span>International number: alert after</span><span><input type="number" id="t-intl" min="0" max="60"> min</span>
+            <span>Normal voice call: alert after</span><span><input type="number" id="t-voice" min="0" max="60"> min</span>
+          </div>
+        </details>
+      </details>
+    </div>
+    <div class="sim">
+      <div class="phone" aria-live="polite">
+        <div class="who">Mummy's phone</div>
+        <div class="dp" id="p-dp">👤</div>
+        <div class="caller" id="p-caller">Unknown number</div>
+        <div class="small muted" id="p-kind">Voice call · 0 min</div>
+        <div id="p-overlay"></div>
+      </div>
+      <div class="phone" aria-live="polite">
+        <div class="who">Rahul's phone (trusted family)</div>
+        <div id="f-msg" class="small muted" style="margin-top:12px">No alerts.</div>
+      </div>
+    </div>
+    <p class="note" id="sim-reasons"></p>
+  </section>
+
+  <footer>
+    <p><b>Privacy.</b> Ruko never listens to your calls. Names, phone numbers, UPI IDs and account numbers are removed on your phone before a message is checked. Nothing you check is stored unless you choose to share it in the feedback.</p>
+    <p>Ruko gives a warning, not a guarantee. If you have already lost money, call <a href="tel:1930">1930</a> immediately or report at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a>.</p>
+  </footer>
+</div>
+
+<script type="module">
+import { checkRules } from "./engine/rules.js";
+import { redact } from "./engine/redact.js";
+import { combine, present } from "./engine/verdict.js";
+import { evaluateCall, quizRisk, DEFAULT_TIMING } from "./engine/call-risk.js";
+import { HELP } from "./engine/scam-types.js";
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === "class") e.className = v; else if (k in e && k !== "list") e[k] = v; else e.setAttribute(k, v); } e.append(...kids.filter((k) => k !== null && k !== undefined)); return e; };
+
+/* ---------- Tabs ---------- */
+const TABS = ["msg", "call", "demo"];
+function show(name) {
+  for (const t of TABS) { $("tab-" + t).setAttribute("aria-selected", String(t === name)); $("panel-" + t).hidden = t !== name; }
+  if (name !== "demo") stopPlay();
+}
+for (const t of TABS) $("tab-" + t).addEventListener("click", () => show(t));
+
+/* ---------- Result card (shared) ---------- */
+function resultCard(v, { channel, text, signals } = {}) {
+  const card = el("div", { class: `result ${v.level}`, role: "status" },
+    el("h2", {}, v.headline),
+    v.typeLabel ? el("div", { class: "type" }, v.typeLabel) : null);
+  if (v.evidence?.length) {
+    card.append(el("p", { class: "small", style: "margin-bottom:0" }, el("b", {}, "Why:")));
+    card.append(el("ul", { class: "why" }, ...v.evidence.map((q) => el("li", {}, `“${q}”`))));
+  }
+  if (v.explanation) card.append(el("p", {}, v.explanation));
+  card.append(el("p", {}, el("b", {}, v.advice)));
+  const actions = el("div", { class: "actions" });
+  if (v.level !== "low") actions.append(el("a", { class: "btn call", href: `tel:${HELP.helpline}` }, `📞 Lost money? Call ${HELP.helpline}`));
+  const ask = `I got a suspicious ${channel === "message" ? "message" : "call"}. Ruko says: ${v.headline} ${v.typeLabel || ""}. Please call me before I do anything.` + (text ? `\n\n"${text.slice(0, 300)}"` : "");
+  actions.append(el("a", { class: "btn", href: `https://wa.me/?text=${encodeURIComponent(ask)}`, target: "_blank", rel: "noopener" }, "💬 Ask family on WhatsApp"));
+  if (v.level !== "low") actions.append(el("a", { class: "btn", href: HELP.portal, target: "_blank", rel: "noopener" }, "Report at cybercrime.gov.in"));
+  card.append(actions);
+  if (v.source) card.append(el("div", { class: "source" }, v.source));
+  card.append(feedbackBox(v, { channel, text, signals }));
+  return card;
+}
+
+function feedbackBox(v, { channel, text, signals }) {
+  const box = el("div", { class: "feedback" }, el("div", { class: "small" }, el("b", {}, "Was Ruko right? "), "Your answer helps Ruko improve."));
+  const share = text ? el("label", { class: "small", style: "display:flex;gap:8px;align-items:center;margin-top:6px" }, el("input", { type: "checkbox" }), "Also share this message (personal details removed) so Ruko can learn from it") : null;
+  const row = el("div", { class: "row" });
+  const send = async (userSays) => {
+    row.replaceChildren(el("span", { class: "small muted" }, "Sending…"));
+    try {
+      const res = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+        channel, userSays, rukoLevel: v.level, rukoType: v.scamType, aiUsed: !!v.aiUsed, signals,
+        shareText: !!share?.querySelector("input").checked, text: share?.querySelector("input").checked ? text : undefined }) });
+      row.replaceChildren(el("span", { class: "small" }, res.ok ? "Thank you. This helps make Ruko better." : "Couldn't send feedback right now."));
+    } catch { row.replaceChildren(el("span", { class: "small" }, "Couldn't send feedback right now.")); }
+    share?.remove();
+  };
+  row.append(el("button", { type: "button", onclick: () => send("scam") }, "It was a scam"), el("button", { type: "button", onclick: () => send("genuine") }, "It was genuine"), el("button", { type: "button", onclick: () => send("unsure") }, "Not sure"));
+  box.append(row);
+  if (share) box.append(share);
+  return box;
+}
+
+/* ---------- 1. Check a message ---------- */
+let shot = null;
+$("shot").addEventListener("change", async () => {
+  const f = $("shot").files[0]; if (!f) return;
+  shot = await toJpeg(f);
+  $("shot-box").hidden = false; $("shot-name").textContent = `Screenshot added: ${f.name}`;
+});
+function toJpeg(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1400 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
+    };
+    img.onerror = reject; img.src = url;
+  });
+}
+
+$("check").addEventListener("click", async () => {
+  const out = $("msg-result"); const btn = $("check");
+  const raw = $("msg").value.trim();
+  if (shot) {
+    if (!$("shot-consent").checked) { out.replaceChildren(el("p", { class: "note" }, "Please tick the box to confirm you cropped out personal details.")); return; }
+    btn.disabled = true; btn.textContent = "Checking screenshot…"; out.replaceChildren();
+    try {
+      const res = await fetch("/api/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageBase64: shot, mime: "image/jpeg", consent: true }) });
+      const v = await res.json();
+      if (!res.ok) out.replaceChildren(el("p", { class: "note" }, v.error === "not_configured" ? "Screenshot checking isn't switched on yet. Paste the text instead." : v.error === "rate_limited" ? "Too many checks right now. Try again in a minute, or paste the text." : "Couldn't check the screenshot. Paste the text instead."));
+      else out.replaceChildren(resultCard(v, { channel: "message" }));
+    } catch { out.replaceChildren(el("p", { class: "note" }, "Couldn't reach Ruko. Check your internet, or paste the text.")); }
+    btn.disabled = false; btn.textContent = "Check it"; return;
+  }
+  if (raw.length < 3) { out.replaceChildren(el("p", { class: "note" }, "Paste a message or tap Speak first.")); return; }
+
+  // Remove personal details ON THE PHONE before anything is sent
+  const { text, found } = redact(raw);
+  const removed = Object.entries(found).map(([k, n]) => `${n} ${k.replace(/[\[\]]/g, "").replace("-", " ")}${n > 1 ? "s" : ""}`);
+  $("redacted").hidden = !removed.length; $("redacted").textContent = removed.length ? `Removed before checking: ${removed.join(", ")}.` : "";
+
+  // Instant answer from the rules, then the AI refines it
+  const quick = { ...combine(checkRules(text), null, text), source: "Quick check on your phone. Asking the AI for a closer look…" };
+  out.replaceChildren(resultCard(quick, { channel: "message", text }));
+  btn.disabled = true; btn.textContent = "Checking…";
+  try {
+    const res = await fetch("/api/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal: AbortSignal.timeout(25000) });
+    const v = await res.json();
+    if (res.ok) { v.source = v.meta?.aiUsed ? "Checked by Ruko's rules and AI." : "Checked by Ruko's rules. The AI is busy right now."; out.replaceChildren(resultCard(v, { channel: "message", text })); }
+    else { quick.source = "Quick check on your phone. The AI check is unavailable right now."; out.replaceChildren(resultCard(quick, { channel: "message", text })); }
+  } catch { quick.source = "Quick check on your phone. Couldn't reach the AI check."; out.replaceChildren(resultCard(quick, { channel: "message", text })); }
+  btn.disabled = false; btn.textContent = "Check it";
+});
+
+// Speaking: uses the browser's own speech-to-text where available (Chrome on Android supports Hindi)
+const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+let speechLang = "hi-IN";
+$("lang").addEventListener("click", () => { speechLang = speechLang === "hi-IN" ? "en-IN" : "hi-IN"; $("lang").textContent = speechLang === "hi-IN" ? "हिंदी" : "English"; });
+if (!Speech) { $("mic").hidden = true; $("lang").hidden = true; }
+$("mic").addEventListener("click", () => {
+  const rec = new Speech(); rec.lang = speechLang; rec.interimResults = true; rec.continuous = false;
+  const before = $("msg").value ? $("msg").value + " " : "";
+  $("mic").textContent = "🎙️ Listening…"; $("mic").disabled = true;
+  rec.onresult = (e) => { $("msg").value = before + [...e.results].map((r) => r[0].transcript).join(" "); };
+  rec.onend = () => { $("mic").textContent = "🎤 Speak"; $("mic").disabled = false; };
+  rec.onerror = () => { $("mic").textContent = "🎤 Speak"; $("mic").disabled = false; };
+  rec.start();
+});
+
+/* ---------- 2. I'm on a call ---------- */
+const answers = {};
+for (const box of document.querySelectorAll(".yn")) {
+  const [yes, no] = box.querySelectorAll("button");
+  const set = (v) => { answers[box.dataset.q] = v; yes.setAttribute("aria-pressed", String(v)); no.setAttribute("aria-pressed", String(!v)); renderQuiz(); };
+  yes.addEventListener("click", () => set(true)); no.addEventListener("click", () => set(false));
+}
+function renderQuiz() {
+  if (Object.keys(answers).length === 0) return;
+  const level = quizRisk(answers);
+  const type = answers.relative ? "relative_in_trouble" : answers.authority ? "digital_arrest" : "unknown";
+  const v = { level, scamType: level === "low" ? "unknown" : type, evidence: [], ...present(level, level === "low" ? "unknown" : type) };
+  if (level === "high") v.explanation = "This is exactly how phone scams work: pressure, fear, secrecy and money. Hang up now. You can call back on a number you already trust.";
+  $("quiz-result").replaceChildren(resultCard(v, { channel: "quiz" }));
+}
+
+/* ---------- 3. Call protection demo (simulated, no real call) ---------- */
+const timing = { ...DEFAULT_TIMING };
+const tInputs = { "t-official": "officialPictureMinutes", "t-video": "videoMinutes", "t-intl": "internationalMinutes", "t-voice": "voiceMinutes" };
+for (const [id, key] of Object.entries(tInputs)) { $(id).value = timing[key]; $(id).addEventListener("input", () => { timing[key] = Math.max(0, Number($(id).value) || 0); renderSim(); }); }
+const sig = () => ({ unknownCaller: $("s-unknown").checked, video: $("s-video").checked, officialPicture: $("s-official").checked, international: $("s-intl").checked, paymentAppOpened: $("s-pay").checked, minutes: Number($("s-min").value) });
+for (const id of ["s-unknown", "s-video", "s-official", "s-intl", "s-pay", "s-min"]) $(id).addEventListener("input", renderSim);
+
+function renderSim() {
+  const s = sig(); const r = evaluateCall(s, timing);
+  $("s-min-v").textContent = s.minutes;
+  $("p-dp").textContent = s.officialPicture ? "👮" : "👤";
+  $("p-caller").textContent = s.unknownCaller ? (s.international ? "+44 7xxx xxxxxx" : "+91 9xxxx xxxxx") : "Rahul (saved)";
+  $("p-kind").textContent = `${s.video ? "Video" : "Voice"} call · ${s.minutes} min`;
+  const ov = $("p-overlay");
+  if (r.level === "stop") ov.replaceChildren(el("div", { class: "overlay stop" }, el("b", {}, "STOP. Don't pay."), el("span", {}, "Real police never ask for money on a call. This looks like a 'digital arrest' scam."), el("i", {}, "📞 Call Rahul"), el("i", {}, "Call 1930"), el("span", { class: "small" }, "I'm sure it's fine")));
+  else if (r.level === "warn" || r.level === "alert") ov.replaceChildren(el("div", { class: "overlay toast" }, el("b", {}, "⚠️ Careful. "), s.officialPicture ? "Real police never call on WhatsApp." : "Unknown caller. Never pay or share OTP on a call."));
+  else ov.replaceChildren();
+  const f = $("f-msg");
+  if (r.alertFamily) f.replaceChildren(el("div", { class: "bubble" }, el("b", {}, "Ruko: "), r.level === "stop" ? `Mummy opened a payment app during a ${s.minutes}-min call with an unknown number. Call her now.` : `Mummy has been on a ${s.minutes}-min ${s.video ? "video" : "voice"} call with an unknown number${s.officialPicture ? " showing a police-style picture" : ""}.`), el("div", { class: "bubble" }, "📞 Call Mummy"));
+  else f.replaceChildren(el("span", {}, r.level === "none" ? "No alerts. The caller is a saved contact." : `No alerts yet. Alert at minute ${r.alertAtMinute}.`));
+  $("sim-reasons").textContent = r.reasons.join(" ");
+}
+
+// A 1-minute story: voice call from a stranger, turns into a police video call, then the payment app opens
+let playTimer = null;
+const STORY = [
+  { m: 0, set: { unknown: true, video: false, official: false, intl: false, pay: false } },
+  { m: 2, set: { video: true, official: true } },
+  { m: 6, set: { pay: true } },
+];
+function stopPlay() { clearInterval(playTimer); playTimer = null; $("play").textContent = "▶ Play a scam call"; }
+$("play").addEventListener("click", () => {
+  if (playTimer) return stopPlay();
+  let minute = 0; $("play").textContent = "■ Stop";
+  const apply = () => {
+    for (const step of STORY) if (step.m === minute) for (const [k, v] of Object.entries(step.set)) $(`s-${k}`).checked = v;
+    $("s-min").value = minute; renderSim();
+    if (minute++ >= 7) stopPlay();
+  };
+  apply(); playTimer = setInterval(apply, 1300);
+});
+renderSim();
+</script>
+</body>
+</html>
