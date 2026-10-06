@@ -21,6 +21,8 @@ const arg = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1
 const rulesOnly = args.includes("--rules-only");
 const endpoint = arg("--endpoint") || "http://localhost:8888/api/check";
 const file = arg("--file") || "private/eval/messages.csv";
+const reportFile = arg("--report") || "private/eval/report.md";
+const tag = arg("--tag") || "";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 if (!fs.existsSync(file)) { console.error(`No test set at ${file}. Copy private/eval/messages-template.csv to messages.csv and fill it in.`); process.exit(1); }
@@ -66,12 +68,13 @@ const run = { at: new Date().toISOString(), mode: rulesOnly ? "rules-only" : "ai
 
 const dir = "private/eval/runs";
 fs.mkdirSync(dir, { recursive: true });
-const runFile = path.join(dir, `${run.at.replace(/[:.]/g, "-")}-${run.mode}.json`);
+const runFile = path.join(dir, `${run.at.replace(/[:.]/g, "-")}-${run.mode}${tag ? "-" + tag : ""}.json`);
 fs.writeFileSync(runFile, JSON.stringify(run, null, 2));
 
 const line = (name, s) => `| ${name} | ${s.scams} | ${s.catchRate ?? "–"}% | ${s.strictCatchRate ?? "–"}% | ${s.genuine} | ${s.falseAlarmRate ?? "–"}% | ${s.genuineUnsureRate ?? "–"}% |`;
 const small = (s) => (s.scams && s.scams < 10) || (s.genuine && s.genuine < 10);
-let md = `# Ruko evaluation report\n\nRun: ${run.at} · Mode: **${run.mode}** · Rows: ${overall.n} (${overall.scams} scam, ${overall.genuine} genuine)\n\n`;
+const synthetic = /synthetic/i.test(file);
+let md = `# Ruko evaluation report${synthetic ? " (SYNTHETIC test set: AI-generated messages, not real)" : ""}\n\nRun: ${run.at} · Mode: **${run.mode}** · Rows: ${overall.n} (${overall.scams} scam, ${overall.genuine} genuine)\n\n`;
 md += `"Caught" means Ruko said high or medium risk. "False alarm" means it said high or medium on a genuine message.\n\n`;
 md += `| Group | Scams | Caught | Caught as high | Genuine | False alarms | "Can't tell" on genuine |\n|---|---|---|---|---|---|---|\n`;
 md += line("**Overall**", overall) + "\n";
@@ -92,5 +95,5 @@ if (compare && fs.existsSync(compare)) {
   md += `\n### Compared with ${path.basename(compare)}\n\n- Scams caught: ${before.overall.catchRate}% → ${overall.catchRate}%\n- False alarms: ${before.overall.falseAlarmRate}% → ${overall.falseAlarmRate}%\n\n`;
   md += regs.length ? `**Do not keep this change.** It made things worse:\n${regs.map((r) => `- ${r}`).join("\n")}\n` : "**No group got worse.** This change can be kept.\n";
 }
-fs.writeFileSync("private/eval/report.md", md);
-console.log(`Overall: caught ${overall.catchRate}% of scams, ${overall.falseAlarmRate}% false alarms. Report: private/eval/report.md, run saved: ${runFile}`);
+fs.writeFileSync(reportFile, md);
+console.log(`Overall: caught ${overall.catchRate}% of scams, ${overall.falseAlarmRate}% false alarms. Report: ${reportFile}, run saved: ${runFile}`);
