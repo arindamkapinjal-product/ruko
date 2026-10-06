@@ -2,7 +2,7 @@
 
 Ruko (Hindi for "wait") spots the signs of a phone or WhatsApp scam in seconds and stops you before you pay. Built for India: English, Hindi and Hinglish.
 
-**Try it:** link coming soon.
+**Try it:** https://arindam-ruko.netlify.app
 
 ## What it does
 
