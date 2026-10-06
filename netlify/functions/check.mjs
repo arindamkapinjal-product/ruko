@@ -51,8 +51,10 @@ export default async (req) => {
     return isImage ? json({ error: "upstream_unreachable" }, 502) : rulesOnly("upstream_unreachable");
   }
   if (!res.ok) {
-    const reason = res.status === 429 ? "rate_limited" : "upstream_error";
-    return isImage ? json({ error: reason }, res.status === 429 ? 429 : 502) : rulesOnly(reason);
+    const reason = res.status === 429 ? "rate_limited" : `upstream_error_${res.status}`;
+    const detail = await res.text().catch(() => "");
+    console.log(JSON.stringify({ event: "upstream_error", status: res.status, model, detail: detail.slice(0, 300) })); // Google error text, never the key
+    return isImage ? json({ error: reason.startsWith("upstream") ? "upstream_error" : reason }, res.status === 429 ? 429 : 502) : rulesOnly(reason);
   }
   const data = await res.json().catch(() => null);
   const ai = parseAi(data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "");
