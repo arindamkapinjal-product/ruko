@@ -39,15 +39,21 @@ export default async (req) => {
   if (isImage) parts.push({ inline_data: { mime_type: body.mime, data: body.imageBase64 } });
   const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
-  let res;
-  try {
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { temperature: 0, maxOutputTokens: 500, responseMimeType: "application/json" } }),
-      signal: AbortSignal.timeout(20000),
-    });
-  } catch {
+  // The free tier sometimes hangs. Wait up to 9 seconds, then try once more, so the user waits at most ~18 seconds
+  const callGemini = () => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { temperature: 0, maxOutputTokens: 500, responseMimeType: "application/json" } }),
+    signal: AbortSignal.timeout(9000),
+  });
+  let res = null, attempts = 0;
+  while (attempts < 2) {
+    attempts++;
+    try { res = await callGemini(); } catch { res = null; }
+    if (res && res.status < 500) break; // success, or an error that a retry won't fix
+  }
+  if (!res) {
+    console.log(JSON.stringify({ event: "upstream_unreachable", attempts, model }));
     return isImage ? json({ error: "upstream_unreachable" }, 502) : rulesOnly("upstream_unreachable");
   }
   if (!res.ok) {
@@ -64,7 +70,7 @@ export default async (req) => {
   const source = isImage ? redact(ai.transcript).text : text;
   const verdict = combine(checkRules(source), ai, source);
   const usage = data?.usageMetadata || {};
-  const meta = { ms: Date.now() - started, aiUsed: true, model, tokensIn: usage.promptTokenCount ?? null, tokensOut: usage.candidatesTokenCount ?? null };
+  const meta = { ms: Date.now() - started, aiUsed: true, model, attempts, tokensIn: usage.promptTokenCount ?? null, tokensOut: usage.candidatesTokenCount ?? null };
   console.log(JSON.stringify({ event: "check", kind: isImage ? "image" : "text", level: verdict.level, ...meta })); // observability, no content
   return json({ ...verdict, meta });
 };
