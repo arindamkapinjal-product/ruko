@@ -37,7 +37,7 @@ export default async (req) => {
 
   const parts = [{ text: buildPrompt({ text, isImage }) }];
   if (isImage) parts.push({ inline_data: { mime_type: body.mime, data: body.imageBase64 } });
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
+  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
   let res;
   try {
