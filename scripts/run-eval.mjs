@@ -47,7 +47,7 @@ for (const [i, row] of rows.entries()) {
       break;
     }
     if (out?.meta && !out.meta.aiUsed) console.warn(`  Row ${row.id}: AI not used (${out.meta.reason}). Counting the rules-only answer.`);
-    await sleep(4500); // stay well inside free-tier limits
+    await sleep(Number(arg("--delay")) || 4500); // stay inside free-tier limits
   }
   results.push({ ...row, level: out?.level ?? "error", scamType: out?.scamType ?? "", evidence: out?.evidence ?? [], aiUsed: !!out?.meta?.aiUsed, ms: out?.meta?.ms ?? null, tokensIn: out?.meta?.tokensIn ?? null, tokensOut: out?.meta?.tokensOut ?? null });
   process.stdout.write(`\r${i + 1}/${rows.length} checked`);
