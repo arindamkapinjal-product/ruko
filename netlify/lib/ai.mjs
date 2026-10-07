@@ -13,6 +13,8 @@ ${types}
 Rules:
 - level: "high" if it clearly matches a scam pattern, "medium" if there are warning signs, "low" if there are no scam signs, "unsure" if you cannot tell.
 - Messages that only inform (a bank OTP saying "do not share", a delivery update, family chat) are "low".
+- Official status notices are "low" even when the wording sounds serious (deadlines, "blocked", "failed", "on hold", "insufficient"), IF they do not ask you to click an unknown link, share an OTP/PIN/password, install an app, pay a person or a new account, keep it secret, or talk to "police". Telling you to use the official app, website, branch or the number on your card is normal for genuine notices.
+- Judge by what the message asks you to DO, not by how scary it sounds.
 - evidence: copy up to 3 short phrases EXACTLY as written in the ${isImage ? "screenshot" : "text"} that show the scam. Never invent or paraphrase.
 - explanation: at most 40 simple words, in the same language and script the user wrote in (English, Hindi, or Hinglish). Calm and kind. Never blame the person.
 - Never say the message is "safe". Never give legal advice. Never comment on anyone's looks, religion, caste or region.
