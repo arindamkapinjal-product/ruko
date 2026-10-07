@@ -108,3 +108,9 @@ test("every scam type has a label and advice, and advice never blames the user",
     assert.doesNotMatch(SCAM_TYPES[id].advice, /stupid|foolish|should have known|(?<!not )your fault/i);
   }
 });
+
+test("'unblocked' is not treated as a block threat", () => {
+  assert.equal(checkRules("Your account has been unblocked by an amount of INR 1000").level, "low");
+  assert.notEqual(checkRules("Your account will be blocked today, update KYC").level, "low");
+});
+

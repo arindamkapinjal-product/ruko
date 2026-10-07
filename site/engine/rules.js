@@ -16,7 +16,7 @@ export const RULES = [
   R("payment_request", 2, null, /\b(?:pay|transfer|send money|deposit|security deposit|verification (?:amount|fee|charge)|processing fee|refundable amount|paise bhej|paise jama)\b|पैसे (?:भेज|जमा|ट्रांसफर)/i),
   R("parcel_seized", 3, "courier_parcel", /(?:parcel|courier|package|fedex|dhl|customs|पार्सल|कूरियर)[^.\n]{0,80}(?:drugs|illegal|seized|mdma|passports?|contraband|पकड़|ड्रग)/i),
   R("sim_block", 3, "telecom_disconnect", /(?:sim|mobile number|your number|phone number|trai)[^.\n]{0,50}(?:block|blocked|suspend|deactivat|disconnect|band ho)/i),
-  R("account_block", 3, "kyc_block", /(?:account|kyc|pan|debit card|credit card|खाता)[^.\n]{0,50}(?:block|blocked|suspend|freeze|frozen|band ho|बंद)/i),
+  R("account_block", 3, "kyc_block", /(?:account|kyc|pan|debit card|credit card|खाता)[^.\n]{0,50}(?<!un)(?:block|blocked|suspend|freeze|frozen|band ho|बंद)/i),
   R("otp_request", 3, "kyc_block", /\b(?:otp|one[- ]time password|upi pin|atm pin|cvv)\b/i, (text, m) => {
     // A bank's own OTP SMS says "do not share". Only flag when someone ASKS for it.
     const around = text.slice(Math.max(0, m.index - 60), m.index + 60).toLowerCase();
