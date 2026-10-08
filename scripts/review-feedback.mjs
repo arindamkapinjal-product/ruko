@@ -10,12 +10,30 @@
 // and every rule or prompt change must pass `npm run eval -- --compare` before it is kept.
 
 import fs from "node:fs";
+import path from "node:path";
 import { toCsv } from "./lib/metrics.mjs";
 
 const args = process.argv.slice(2);
 const site = (args[args.indexOf("--site") + 1] || "http://localhost:8888").replace(/\/$/, "");
-const token = process.env.FEEDBACK_ADMIN_TOKEN;
-if (!token) { console.error("Set FEEDBACK_ADMIN_TOKEN in this terminal first (the same value as in Netlify)."); process.exit(1); }
+// Use FEEDBACK_ADMIN_TOKEN from this terminal, or read it from Netlify with the owner's CLI login (kept in memory only)
+async function tokenFromNetlify() {
+  const siteId = args[args.indexOf("--site-id") + 1];
+  if (!args.includes("--site-id") || !siteId) return null;
+  const team = args[args.indexOf("--team") + 1];
+  try {
+    // The Netlify CLI keeps the owner's login here after `netlify login`
+    const os = await import("node:os");
+    const base = process.platform === "win32" ? path.join(process.env.APPDATA || "", "netlify", "Config") : path.join(os.homedir(), ".config", "netlify");
+    const cfg = JSON.parse(fs.readFileSync(path.join(base, "config.json"), "utf8"));
+    const auth = cfg.users?.[cfg.userId]?.auth?.token;
+    if (!auth || !team) return null;
+    const res = await fetch(`https://api.netlify.com/api/v1/accounts/${encodeURIComponent(team)}/env?site_id=${encodeURIComponent(siteId)}`, { headers: { Authorization: `Bearer ${auth}` } });
+    if (!res.ok) return null;
+    return (await res.json()).find((v) => v.key === "FEEDBACK_ADMIN_TOKEN")?.values?.[0]?.value || null;
+  } catch { return null; }
+}
+const token = process.env.FEEDBACK_ADMIN_TOKEN || (await tokenFromNetlify());
+if (!token) { console.error("No feedback token. Set FEEDBACK_ADMIN_TOKEN, or pass --site-id <id> --team <team> while logged in to Netlify."); process.exit(1); }
 
 const res = await fetch(`${site}/api/feedback`, { headers: { Authorization: `Bearer ${token}` } });
 if (!res.ok) { console.error(`Could not read feedback (HTTP ${res.status}).`); process.exit(1); }
