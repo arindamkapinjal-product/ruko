@@ -1,5 +1,6 @@
 // The self-improving loop, step 2: turn user feedback into things a human reviews.
 //
+//   npm run review-feedback -- --cli          (logged in to Netlify, folder linked to the site)
 //   FEEDBACK_ADMIN_TOKEN=... npm run review-feedback -- --site https://your-site.netlify.app
 //
 // Writes:
@@ -10,34 +11,32 @@
 // and every rule or prompt change must pass `npm run eval -- --compare` before it is kept.
 
 import fs from "node:fs";
-import path from "node:path";
 import { toCsv } from "./lib/metrics.mjs";
 
 const args = process.argv.slice(2);
 const site = (args[args.indexOf("--site") + 1] || "http://localhost:8888").replace(/\/$/, "");
-// Use FEEDBACK_ADMIN_TOKEN from this terminal, or read it from Netlify with the owner's CLI login (kept in memory only)
-async function tokenFromNetlify() {
-  const siteId = args[args.indexOf("--site-id") + 1];
-  if (!args.includes("--site-id") || !siteId) return null;
-  const team = args[args.indexOf("--team") + 1];
-  try {
-    // The Netlify CLI keeps the owner's login here after `netlify login`
-    const os = await import("node:os");
-    const base = process.platform === "win32" ? path.join(process.env.APPDATA || "", "netlify", "Config") : path.join(os.homedir(), ".config", "netlify");
-    const cfg = JSON.parse(fs.readFileSync(path.join(base, "config.json"), "utf8"));
-    const auth = cfg.users?.[cfg.userId]?.auth?.token;
-    if (!auth || !team) return null;
-    const res = await fetch(`https://api.netlify.com/api/v1/accounts/${encodeURIComponent(team)}/env?site_id=${encodeURIComponent(siteId)}`, { headers: { Authorization: `Bearer ${auth}` } });
-    if (!res.ok) return null;
-    return (await res.json()).find((v) => v.key === "FEEDBACK_ADMIN_TOKEN")?.values?.[0]?.value || null;
-  } catch { return null; }
+// Two ways to read feedback:
+//   --cli : read the Netlify Blobs store with the owner's Netlify CLI login (folder linked with `netlify link`). No password needed.
+//   default: call /api/feedback with FEEDBACK_ADMIN_TOKEN set in this terminal.
+async function readFeedback() {
+  if (args.includes("--cli")) {
+    const { execSync } = await import("node:child_process");
+    const run = (cmd) => execSync(cmd, { encoding: "utf8", timeout: 90000, stdio: ["ignore", "pipe", "ignore"] });
+    const { blobs } = JSON.parse(run("netlify blobs:list feedback --json"));
+    const out = [];
+    for (const b of blobs) {
+      if (!/^[A-Za-z0-9_-]+$/.test(b.key)) continue; // keys are timestamp-random; skip anything unexpected
+      try { out.push(JSON.parse(run(`netlify blobs:get feedback ${b.key}`))); } catch { /* skip unreadable item */ }
+    }
+    return out;
+  }
+  const token = process.env.FEEDBACK_ADMIN_TOKEN;
+  if (!token) { console.error("Use --cli (after netlify login + netlify link), or set FEEDBACK_ADMIN_TOKEN in this terminal."); process.exit(1); }
+  const res = await fetch(`${site}/api/feedback`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) { console.error(`Could not read feedback (HTTP ${res.status}).`); process.exit(1); }
+  return (await res.json()).items;
 }
-const token = process.env.FEEDBACK_ADMIN_TOKEN || (await tokenFromNetlify());
-if (!token) { console.error("No feedback token. Set FEEDBACK_ADMIN_TOKEN, or pass --site-id <id> --team <team> while logged in to Netlify."); process.exit(1); }
-
-const res = await fetch(`${site}/api/feedback`, { headers: { Authorization: `Bearer ${token}` } });
-if (!res.ok) { console.error(`Could not read feedback (HTTP ${res.status}).`); process.exit(1); }
-const { items } = await res.json();
+const items = await readFeedback();
 
 const flagged = (l) => ["high", "medium", "alert", "stop"].includes(l);
 const misses = items.filter((i) => i.userSays === "scam" && !flagged(i.rukoLevel));
