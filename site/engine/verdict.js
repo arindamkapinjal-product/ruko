@@ -2,6 +2,7 @@
 // Guarantees: evidence is never made up, and Ruko never says a message is "safe".
 
 import { SCAM_TYPES } from "./scam-types.js";
+import { isRoutineNotice } from "./routine.js";
 
 const RANK = { low: 0, unsure: 1, medium: 2, high: 3 };
 const norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -30,6 +31,9 @@ export function combine(rules, ai, sourceText) {
     evidence = [...new Set([...verifiedQuotes(ai.evidence, sourceText), ...evidence])].slice(0, 4);
     explanation = typeof ai.explanation === "string" ? ai.explanation.slice(0, 400) : "";
   }
+  // A routine bank notice (OTP with "do not share", debit/credit alert) with no strong scam rule is not a warning.
+  const strongRule = (rules.hits || []).some((h) => h.weight >= 3);
+  if (level === "medium" && !strongRule && isRoutineNotice(sourceText)) level = "low";
   if (level === "low") scamType = "unknown";
 
   return { level, scamType, evidence, explanation, aiUsed, ...present(level, scamType) };

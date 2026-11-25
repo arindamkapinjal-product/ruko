@@ -114,3 +114,15 @@ test("'unblocked' is not treated as a block threat", () => {
   assert.notEqual(checkRules("Your account will be blocked today, update KYC").level, "low");
 });
 
+
+import { isRoutineNotice } from "../site/engine/routine.js";
+test("routine bank notices are not warnings, but anything asking for action still is", () => {
+  const otp = "032456 is your OTP for fund transfer for amount Rs.3,000 to Ravi. OTPvalid for 8 minutes. Do not share this OTP with anyone";
+  const debit = "INR 2000 debited from A/c no. XX3423 on 05-02-19 07:27:11 IST at ECS PAY. Avl Bal- INR 2343.23.";
+  assert.equal(isRoutineNotice(otp), true);
+  assert.equal(isRoutineNotice(debit), true);
+  assert.equal(combine(checkRules(otp), { level: "medium", scamType: "unknown", evidence: [] }, otp).level, "low");
+  assert.equal(isRoutineNotice("Your OTP is 4821. Do not share. Call 9876543210 to cancel this transfer"), false);
+  assert.equal(isRoutineNotice("Rs 5000 debited from A/c XX12 Avl Bal 20. Click http://bit.ly/x to dispute"), false);
+  assert.equal(isRoutineNotice("Please share your OTP to claim refund. Do not tell anyone"), false);
+});
