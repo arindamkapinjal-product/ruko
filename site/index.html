@@ -15,6 +15,9 @@
 <meta name="description" content="Got a suspicious call or message? Ruko spots scam signs in seconds and stops you before you pay. Built for India. Never listens to your calls.">
 <meta name="theme-color" content="#B3261E">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23B3261E' d='M20 2h24l18 18v24L44 62H20L2 44V20z'/%3E%3Cpath fill='%23fff' d='M18 28h28v8H18z'/%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#B3261E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -139,6 +142,10 @@
       </div>
       <div class="row"><button type="button" class="primary" id="check">Check it</button></div>
       <p class="note" id="redacted" hidden></p>
+    </div>
+    <div class="card" id="install-card" hidden>
+      <p class="small"><b>No typing next time.</b> Add Ruko to your phone, then in WhatsApp or Messages press and hold a message, tap Share, and choose Ruko. It checks it for you.</p>
+      <div class="row"><button type="button" id="install">Add Ruko to my phone</button></div>
     </div>
     <div id="msg-result"></div>
   </section>
@@ -284,6 +291,18 @@ function toJpeg(file) {
   });
 }
 
+let deferredInstall = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstall = e; $("install-card").hidden = false; });
+$("install").addEventListener("click", async () => { if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice.catch(() => {}); deferredInstall = null; $("install-card").hidden = true; });
+window.addEventListener("appinstalled", () => { $("install-card").hidden = true; });
+/* Installed app: register it, and when another app shares a message to Ruko, check it straight away. */
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+{
+  const q = new URLSearchParams(location.search);
+  const shared = [q.get("title"), q.get("text"), q.get("url")].filter(Boolean).join("
+").trim();
+  if (shared) { $("msg").value = shared.slice(0, 2000); history.replaceState(null, "", "/"); setTimeout(() => $("check").click(), 0); }
+}
 $("check").addEventListener("click", async () => {
   const out = $("msg-result"); const btn = $("check");
   const raw = $("msg").value.trim();
